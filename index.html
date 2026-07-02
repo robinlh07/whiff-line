@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Whiff Line — Strikeout Projections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10160f;
+    --ink-2:#151d13;
+    --paper:#eee7d6;
+    --chalk:#f4f1e6;
+    --chalk-dim:#c9c6ba;
+    --lights:#e8a33d;
+    --lights-dim:#8a6428;
+    --field:#4f8f6c;
+    --foul:#c1523a;
+    --line:rgba(244,241,230,0.14);
+    --line-strong:rgba(244,241,230,0.28);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--chalk);
+    font-family:'Newsreader', serif;
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Big Shoulders Display', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.01em;
+    font-weight:800;
+    line-height:0.95;
+    margin:0;
+  }
+  .mono{
+    font-family:'JetBrains Mono', monospace;
+  }
+  a{color:inherit;}
+  ::selection{background:var(--lights);color:var(--ink);}
+  :focus-visible{outline:2px solid var(--lights);outline-offset:3px;}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+
+  /* NAV */
+  header.site{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    background:linear-gradient(to bottom, rgba(16,22,15,0.96), rgba(16,22,15,0.85) 80%, transparent);
+    border-bottom:1px solid transparent;
+    transition:border-color .3s ease;
+  }
+  header.site.scrolled{border-bottom-color:var(--line);}
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 28px;max-width:1080px;margin:0 auto;
+  }
+  .nav-mark{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:900;font-size:22px;letter-spacing:0.02em;
+    display:flex;align-items:center;gap:8px;
+  }
+  .nav-mark .k{color:var(--lights);}
+  .nav-links{display:flex;gap:28px;list-style:none;margin:0;padding:0;}
+  .nav-links a{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;text-transform:uppercase;letter-spacing:0.12em;
+    color:var(--chalk-dim);text-decoration:none;
+    padding-bottom:3px;border-bottom:1px solid transparent;
+    transition:color .2s, border-color .2s;
+  }
+  .nav-links a:hover{color:var(--chalk);border-color:var(--lights);}
+  .nav-toggle{display:none;background:none;border:1px solid var(--line-strong);color:var(--chalk);width:38px;height:38px;border-radius:2px;cursor:pointer;}
+
+  /* HERO */
+  .hero{
+    padding:168px 0 96px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 82% -10%, rgba(232,163,61,0.16), transparent 60%),
+      repeating-linear-gradient(180deg, transparent, transparent 39px, var(--line) 40px);
+    pointer-events:none;
+  }
+  .hero-grid{
+    position:relative;display:grid;grid-template-columns:1.2fr 0.8fr;gap:56px;align-items:center;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;
+    color:var(--lights);margin-bottom:18px;display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--lights);}
+  .hero h1{font-size:clamp(42px,6vw,72px);}
+  .hero h1 .accent{color:var(--lights);}
+  .hero p.lede{
+    font-family:'Newsreader', serif;font-style:italic;color:var(--chalk-dim);
+    font-size:19px;max-width:46ch;margin:22px 0 30px;
+  }
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;}
+  .btn{
+    font-family:'JetBrains Mono', monospace;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;
+    padding:13px 22px;border-radius:2px;text-decoration:none;display:inline-block;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn-primary{background:var(--lights);color:var(--ink);font-weight:600;}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-ghost{border:1px solid var(--line-strong);color:var(--chalk);}
+  .btn-ghost:hover{border-color:var(--lights);color:var(--lights);}
+
+  /* scorecard K mark */
+  .k-mark{width:100%;max-width:340px;justify-self:center;}
+  .k-mark svg{width:100%;height:auto;overflow:visible;}
+  .k-mark .diamond{fill:none;stroke:var(--line-strong);stroke-width:1.5;}
+  .k-mark .k-path{
+    fill:none;stroke:var(--lights);stroke-width:7;stroke-linecap:square;stroke-linejoin:miter;
+    stroke-dasharray:520;stroke-dashoffset:520;
+    animation:draw-k 1.6s 0.3s cubic-bezier(.65,0,.35,1) forwards;
+  }
+  .k-mark .k-label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.15em;fill:var(--chalk-dim);
+  }
+  @keyframes draw-k{to{stroke-dashoffset:0;}}
+  @media (prefers-reduced-motion: reduce){
+    .k-mark .k-path{animation:none;stroke-dashoffset:0;}
+  }
+
+  .stat-strip{
+    display:flex;gap:0;margin-top:64px;border-top:1px solid var(--line);
+  }
+  .stat{flex:1;padding:20px 0 0;border-right:1px solid var(--line);}
+  .stat:last-child{border-right:none;}
+  .stat .num{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--lights);}
+  .stat .label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--chalk-dim);margin-top:4px;}
+
+  /* SECTIONS */
+  section{padding:96px 0;border-bottom:1px solid var(--line);}
+  .section-head{display:grid;grid-template-columns:100px 1fr;gap:24px;margin-bottom:48px;align-items:baseline;}
+  .section-head .tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--lights);letter-spacing:0.1em;}
+  .section-head h2{font-size:clamp(30px,4vw,44px);}
+  .section-head p.sub{grid-column:2;font-family:'Newsreader',serif;color:var(--chalk-dim);font-size:17px;max-width:60ch;margin-top:8px;}
+
+  .fade-up{opacity:0;transform:translateY(18px);transition:opacity .7s ease, transform .7s ease;}
+  .fade-up.in{opacity:1;transform:none;}
+
+  /* what this is */
+  .principles{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-top:8px;}
+  .principle{background:var(--ink);padding:28px 26px;}
+  .principle .mark{font-family:'JetBrains Mono',monospace;color:var(--lights);font-size:13px;}
+  .principle h3{font-family:'Big Shoulders Display',sans-serif;font-size:22px;font-weight:700;margin:10px 0 8px;text-transform:none;}
+  .principle p{color:var(--chalk-dim);font-size:15px;margin:0;}
+
+  /* model pipeline */
+  .pipeline{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:52px 0 0;position:relative;
+  }
+  .pipe-step{
+    padding:22px 20px 22px 0;position:relative;
+  }
+  .pipe-step:not(:last-child)::after{
+    content:"→";position:absolute;right:-4px;top:22px;color:var(--lights-dim);font-family:'JetBrains Mono',monospace;
+  }
+  .pipe-step .n{font-family:'JetBrains Mono',monospace;color:var(--lights);font-size:12px;}
+  .pipe-step h4{font-family:'Big Shoulders Display',sans-serif;font-size:19px;font-weight:700;text-transform:none;margin:8px 0 6px;}
+  .pipe-step p{font-size:14.5px;color:var(--chalk-dim);margin:0;}
+
+  .model-detail{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:48px;}
+  .model-detail p{color:var(--chalk-dim);font-size:16px;}
+  .model-detail h3{font-family:'Big Shoulders Display',sans-serif;font-size:20px;font-weight:700;text-transform:none;color:var(--chalk);margin-bottom:10px;}
+
+  /* features / lineup card */
+  .lineup{border-top:1px solid var(--line-strong);margin-top:8px;}
+  .lineup-row{
+    display:grid;grid-template-columns:56px 1fr 2fr;gap:24px;padding:26px 0;border-bottom:1px solid var(--line);align-items:start;
+  }
+  .lineup-row .slot{font-family:'JetBrains Mono',monospace;font-size:34px;color:var(--lights-dim);font-weight:700;}
+  .lineup-row h3{font-family:'Big Shoulders Display',sans-serif;font-size:23px;font-weight:700;text-transform:none;margin-bottom:4px;}
+  .lineup-row .why{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--lights);margin-bottom:10px;}
+  .lineup-row p{margin:0;color:var(--chalk-dim);font-size:15.5px;max-width:62ch;}
+  .lineup-row.excluded .slot{color:var(--foul);}
+  .lineup-row.excluded h3{color:var(--chalk-dim);}
+
+  /* performance table */
+  .perf-note{
+    background:var(--ink-2);border:1px solid var(--line-strong);padding:20px 24px;border-radius:2px;margin-bottom:32px;
+    display:flex;gap:16px;align-items:flex-start;
+  }
+  .perf-note .glyph{font-family:'JetBrains Mono',monospace;color:var(--lights);font-size:20px;line-height:1;}
+  .perf-note p{margin:0;font-size:15px;color:var(--chalk-dim);}
+  .perf-note strong{color:var(--chalk);}
+
+  .ledger{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+  .ledger thead th{
+    text-align:left;font-weight:500;color:var(--lights);text-transform:uppercase;letter-spacing:0.08em;font-size:11px;
+    padding:0 12px 12px;border-bottom:1px solid var(--line-strong);
+  }
+  .ledger td{padding:14px 12px;border-bottom:1px solid var(--line);color:var(--chalk-dim);white-space:nowrap;}
+  .ledger td.pitcher{color:var(--chalk);font-family:'Newsreader',serif;font-size:15px;font-style:italic;}
+  .ledger tr:hover td{background:rgba(244,241,230,0.03);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:11px;letter-spacing:0.05em;}
+  .badge.hit{background:rgba(79,143,108,0.18);color:var(--field);}
+  .badge.miss{background:rgba(193,82,58,0.18);color:var(--foul);}
+  .badge.push{background:rgba(244,241,230,0.1);color:var(--chalk-dim);}
+  .edge-pos{color:var(--field);}
+  .edge-neg{color:var(--foul);}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);}
+
+  .caption{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--chalk-dim);margin-top:14px;letter-spacing:0.03em;}
+
+  /* footer */
+  footer{padding:56px 0 48px;}
+  .foot-grid{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;}
+  footer .nav-mark{margin-bottom:10px;}
+  footer p{color:var(--chalk-dim);font-size:14px;max-width:50ch;margin:0;}
+  .disclaimer{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--chalk-dim);
+    border-top:1px solid var(--line);margin-top:40px;padding-top:20px;letter-spacing:0.02em;
+  }
+
+  /* responsive */
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .k-mark{order:-1;max-width:220px;}
+    .hero{padding-top:130px;}
+    .principles{grid-template-columns:1fr;}
+    .pipeline{grid-template-columns:1fr;}
+    .pipe-step:not(:last-child)::after{display:none;}
+    .pipe-step{padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+    .model-detail{grid-template-columns:1fr;}
+    .section-head{grid-template-columns:1fr;}
+    .section-head p.sub{grid-column:1;}
+    .lineup-row{grid-template-columns:36px 1fr;grid-template-areas:"slot title" ". body";}
+    .lineup-row .slot{grid-area:slot;font-size:26px;}
+    .lineup-row > div{grid-area:title;}
+    .lineup-row p{grid-area:body;grid-column:1/-1;margin-top:10px;}
+    .nav-links{display:none;}
+    .nav-toggle{display:block;}
+    .stat-strip{flex-wrap:wrap;}
+    .stat{flex:1 1 50%;border-bottom:1px solid var(--line);padding-bottom:16px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site" id="siteHeader">
+  <div class="nav">
+    <div class="nav-mark"><span class="k">Ǝʞ</span> WHIFF LINE</div>
+    <nav><ul class="nav-links">
+      <li><a href="#model">Model</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#performance">Performance</a></li>
+      <li><a href="#about">About</a></li>
+    </ul></nav>
+    <button class="nav-toggle" aria-label="Menu">≡</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Hobby model · Every start, every day</div>
+      <h1>Every strikeout,<br>projected before<br>the <span class="accent">first pitch.</span></h1>
+      <p class="lede">CSW%, opponent whiff rates, and workload rolled into one number for every MLB starter — logged before games start, graded the next morning, never edited after the fact.</p>
+      <div class="hero-cta">
+        <a href="#performance" class="btn btn-primary">See the full record</a>
+        <a href="#model" class="btn btn-ghost">How it works</a>
+      </div>
+    </div>
+    <div class="k-mark" aria-hidden="true">
+      <svg viewBox="0 0 200 240">
+        <polygon class="diamond" points="100,10 190,120 100,230 10,120"></polygon>
+        <path class="k-path" d="M70,70 L70,170 M70,120 L130,70 M70,120 L130,170"></path>
+        <text x="100" y="215" text-anchor="middle" class="k-label">STRIKEOUT — SCORED</text>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="stat-strip">
+      <div class="stat"><div class="num mono">2022–</div><div class="label">Training window</div></div>
+      <div class="stat"><div class="num mono">5</div><div class="label">Quantile models</div></div>
+      <div class="stat"><div class="num mono">3–5×</div><div class="label">Data refreshes / day</div></div>
+      <div class="stat"><div class="num mono">100%</div><div class="label">Of picks logged, win or lose</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap">
+    <div class="section-head fade-up">
+      <div class="tag">What this is</div>
+      <h2>A model that shows its work.</h2>
+      <p class="sub">It projects a strikeout total for every MLB starting pitcher, compares that projection to sportsbook over/under lines, and ranks whatever positive-expected-value edges turn up. Then it gets out of the way — no manual overrides, no quiet deletions.</p>
+    </div>
+    <div class="principles fade-up">
+      <div class="principle">
+        <div class="mark mono">01 / RUNS ITSELF</div>
+        <h3>Refreshes on its own</h3>
+        <p>Lineups, weather, and odds pull in several times a day as they update — no one's thumb on the scale between data and projection.</p>
+      </div>
+      <div class="principle">
+        <div class="mark mono">02 / LOGGED EARLY</div>
+        <h3>Timestamped before first pitch</h3>
+        <p>Every number is written down before the game starts. There's no version of a projection made after the fact.</p>
+      </div>
+      <div class="principle">
+        <div class="mark mono">03 / RECONCILED NIGHTLY</div>
+        <h3>Graded while you sleep</h3>
+        <p>Actual strikeouts get matched to the logged projection overnight, automatically, and posted whether the model was right or wrong.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="model">
+  <div class="wrap">
+    <div class="section-head fade-up">
+      <div class="tag">The model</div>
+      <h2>From box score to probability.</h2>
+      <p class="sub">A LightGBM model with a Poisson objective handles the point estimate. Five quantile models trace the shape of the distribution around it. A monotone curve turns that shape into a probability of clearing any given line.</p>
+    </div>
+
+    <div class="pipeline fade-up">
+      <div class="pipe-step">
+        <div class="n mono">STEP 01</div>
+        <h4>Feature build</h4>
+        <p>Pitcher form, opponent lineup, workload, and context assembled per start.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="n mono">STEP 02</div>
+        <h4>Point estimate</h4>
+        <p>LightGBM, Poisson objective — a single expected strikeout count.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="n mono">STEP 03</div>
+        <h4>Distribution</h4>
+        <p>p10 / p25 / p50 / p75 / p90 quantile models trace the realistic range.</p>
+      </div>
+      <div class="pipe-step">
+        <div class="n mono">STEP 04</div>
+        <h4>PCHIP curve</h4>
+        <p>A smooth monotone curve through the quantiles prices any line's over/under odds.</p>
+      </div>
+    </div>
+
+    <div class="model-detail">
+      <div class="fade-up">
+        <h3>Why Poisson</h3>
+        <p>Strikeouts are a count, not a continuous number, and Poisson-style objectives are built for exactly that: a non-negative outcome with a long right tail on nights a starter runs deep and racks up whiffs.</p>
+      </div>
+      <div class="fade-up">
+        <h3>Why five separate models</h3>
+        <p>A single point estimate can't tell you how confident to be. The quantile spread does — a tight p10–p90 range means a cleaner bet against the line; a wide one means the model is hedging, and the odds should reflect that.</p>
+      </div>
+      <div class="fade-up">
+        <h3>Retraining</h3>
+        <p>Weekly, on an expanding window of every start logged since 2022 — new results fold in without discarding the seasons behind them.</p>
+      </div>
+      <div class="fade-up">
+        <h3>Early-season prior</h3>
+        <p>A Marcel-style regressed prior from the prior season anchors projections in April, fading out as batters-faced accumulates — roughly half-weighted by the time a starter has logged 70 batters faced this season.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head fade-up">
+      <div class="tag">Features</div>
+      <h2>The lineup card.</h2>
+      <p class="sub">Ranked by importance to the model, not by how easy each one is to explain.</p>
+    </div>
+
+    <div class="lineup fade-up">
+      <div class="lineup-row">
+        <div class="slot mono">01</div>
+        <div><h3>Swing-and-miss form</h3><div class="why mono">Leadoff — heaviest weight</div></div>
+        <p>CSW%, SwStr%, and K% as exponentially-weighted averages with a ~5-start half-life. CSW% stabilizes faster than K%, which is why it leads the lineup rather than K% itself.</p>
+      </div>
+      <div class="lineup-row">
+        <div class="slot mono">02</div>
+        <div><h3>Opponent lineup K% vs. hand</h3><div class="why mono">Matchup</div></div>
+        <p>Slot-weighted strikeout rate of the nine projected hitters against the pitcher's throwing hand — blended 60% last 30 days, 40% full season.</p>
+      </div>
+      <div class="lineup-row">
+        <div class="slot mono">03</div>
+        <div><h3>Expected workload</h3><div class="why mono">Volume</div></div>
+        <p>Recent batters-faced average combined with the game's run environment — Vegas total when it's posted, otherwise both teams' recent scoring.</p>
+      </div>
+      <div class="lineup-row">
+        <div class="slot mono">04</div>
+        <div><h3>Stabilizers and context</h3><div class="why mono">Situational</div></div>
+        <p>K-BB%, fastball velocity trend as a fatigue flag, park strikeout factor, home-plate umpire tendency, temperature and wind at outdoor parks, home/away, days of rest.</p>
+      </div>
+      <div class="lineup-row">
+        <div class="slot mono">05</div>
+        <div><h3>Early-season prior</h3><div class="why mono">Regression anchor</div></div>
+        <p>A Marcel-style prior from last season, blended in by sample size — the model leans on it in April, on current form by June.</p>
+      </div>
+      <div class="lineup-row excluded">
+        <div class="slot mono">—</div>
+        <div><h3>Batter-vs-pitcher history</h3><div class="why mono">Deliberately excluded</div></div>
+        <p>Mostly noise below roughly 25 plate appearances of head-to-head history — left out on purpose rather than down-weighted.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="performance" style="border-bottom:none;">
+  <div class="wrap">
+    <div class="section-head fade-up">
+      <div class="tag">Performance</div>
+      <h2>The whole record.</h2>
+      <p class="sub">Nothing is deleted or cherry-picked. This is the format every projection is logged in, win or lose, before the first pitch is thrown.</p>
+    </div>
+
+    <div class="perf-note fade-up">
+      <div class="glyph mono">✓</div>
+      <p><strong>Illustrative sample.</strong> The rows below mirror the exact layout of the live log — date, matchup, line, projection, edge, and grade — populated with sample entries rather than a live feed.</p>
+    </div>
+
+    <div class="table-scroll fade-up">
+      <table class="ledger">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Pitcher</th>
+            <th>Opp</th>
+            <th>Line</th>
+            <th>Proj (p50)</th>
+            <th>P(over)</th>
+            <th>Edge</th>
+            <th>Actual K</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>06/29</td><td class="pitcher">Sample Pitcher A</td><td>@ SEA</td>
+            <td>6.5</td><td>7.4</td><td>68%</td>
+            <td class="edge-pos">+9.1%</td><td>8</td>
+            <td><span class="badge hit">OVER hit</span></td>
+          </tr>
+          <tr>
+            <td>06/29</td><td class="pitcher">Sample Pitcher B</td><td>vs BOS</td>
+            <td>5.5</td><td>4.8</td><td>39%</td>
+            <td class="edge-pos">+8.4%</td><td>4</td>
+            <td><span class="badge hit">UNDER hit</span></td>
+          </tr>
+          <tr>
+            <td>06/28</td><td class="pitcher">Sample Pitcher C</td><td>@ ATL</td>
+            <td>7.0</td><td>7.3</td><td>56%</td>
+            <td class="edge-neg">+2.1%</td><td>6</td>
+            <td><span class="badge miss">OVER missed</span></td>
+          </tr>
+          <tr>
+            <td>06/28</td><td class="pitcher">Sample Pitcher D</td><td>vs MIL</td>
+            <td>6.0</td><td>6.1</td><td>52%</td>
+            <td class="edge-neg">+1.6%</td><td>6</td>
+            <td><span class="badge push">Push</span></td>
+          </tr>
+          <tr>
+            <td>06/27</td><td class="pitcher">Sample Pitcher E</td><td>@ NYM</td>
+            <td>5.5</td><td>6.6</td><td>71%</td>
+            <td class="edge-pos">+12.7%</td><td>7</td>
+            <td><span class="badge hit">OVER hit</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="caption">Edge = model probability minus the sportsbook's implied probability at the logged line. Grades are assigned automatically once the box score is final.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="nav-mark"><span class="k">Ǝʞ</span> WHIFF LINE</div>
+        <p>A hobby project tracking MLB strikeout projections against the market, in the open, every day of the season.</p>
+      </div>
+      <a href="#model" class="btn btn-ghost">Back to top ↑</a>
+    </div>
+    <div class="disclaimer">
+      Hobby project. Not betting advice. Sportsbook lines shift after publication and past accuracy does not guarantee future results. Please gamble responsibly.
+    </div>
+  </div>
+</footer>
+
+<script>
+  const header = document.getElementById('siteHeader');
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+
+  const toggle = document.querySelector('.nav-toggle');
+  const links = document.querySelector('.nav-links');
+  toggle.addEventListener('click', () => {
+    const open = links.style.display === 'flex';
+    links.style.display = open ? 'none' : 'flex';
+    links.style.cssText += 'position:absolute;top:60px;right:28px;background:#151d13;flex-direction:column;padding:16px 20px;border:1px solid rgba(244,241,230,0.28);gap:14px;';
+  });
+</script>
+
+</body>
+</html>
